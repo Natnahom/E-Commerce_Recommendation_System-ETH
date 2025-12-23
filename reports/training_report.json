@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-12-23 08:25:53",
+  "timestamp": "2025-12-23 11:28:09",
   "dataset": {
     "raw_size": 10000,
     "processed_size": 9676,
@@ -17,6 +17,6 @@
   },
   "performance": {
     "coverage_percentage": 4.92972302604382,
-    "average_similarity": 0.7816895646938163
+    "average_similarity": 0.781689564693816
   }
 }
