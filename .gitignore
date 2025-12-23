@@ -1,0 +1,3 @@
+.venv
+data/models/*.pkl
+data/processed/*.pkl

@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-12-23 08:25:53",
+  "dataset": {
+    "raw_size": 10000,
+    "processed_size": 9676,
+    "categories": 10,
+    "average_price": 17673.584125671765,
+    "average_rating": 3.9973336089293094
+  },
+  "model": {
+    "tfidf_features": 5000,
+    "vocabulary_size": 5000,
+    "similarity_matrix_shape": [
+      9676,
+      9676
+    ]
+  },
+  "performance": {
+    "coverage_percentage": 4.92972302604382,
+    "average_similarity": 0.7816895646938163
+  }
+}
