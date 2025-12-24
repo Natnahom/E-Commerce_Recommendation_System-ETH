@@ -1,22 +1,22 @@
 {
-  "timestamp": "2025-12-23 11:28:09",
+  "timestamp": "2025-12-24 14:32:32",
   "dataset": {
     "raw_size": 10000,
-    "processed_size": 9676,
+    "processed_size": 10000,
     "categories": 10,
-    "average_price": 17673.584125671765,
-    "average_rating": 3.9973336089293094
+    "average_price": 7493.1821,
+    "average_rating": 3.9685300000000003
   },
   "model": {
     "tfidf_features": 5000,
     "vocabulary_size": 5000,
     "similarity_matrix_shape": [
-      9676,
-      9676
+      10000,
+      10000
     ]
   },
   "performance": {
-    "coverage_percentage": 4.92972302604382,
-    "average_similarity": 0.781689564693816
+    "coverage_percentage": 4.84,
+    "average_similarity": 0.9547956312219008
   }
 }

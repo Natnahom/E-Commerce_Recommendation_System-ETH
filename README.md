@@ -11,19 +11,14 @@ This project implements a **Content-Based Filtering** recommendation system tail
 ethiopian-ecommerce-recommender/
 ├── data/ # Data files
 ├── src/ # Source code
-├── demo/ # Web application demo
 ├── tests/ # Unit tests
 ├── notebooks/ # Jupyter notebooks
 ├── requirements.txt # Dependencies
 ├── config.yaml # Configuration
-├── run_training.py # Training script
-└── run_demo.py # Demo launcher
-
 
 ## 🚀 Quick Start
 
 ### 1. Installation
-```bash
 pip install -r requirements.txt
 
 2. Prepare Data
@@ -89,14 +84,12 @@ mkdir -p ethiopian-ecommerce-recommender/{data/{raw,processed,models},src,demo/{
 
 # Install dependencies
 pip install -r requirements.txt
-Step 2: Add the sample data
-Save the CSV file as data/raw/ethiopian_products_sample.csv
+Step 2: Add the data
+Save the CSV file as data/raw/ethiopian_products_10k.csv
 
 Step 3: Train the model
+by following train_model.ipynb
 
-python run_training.py
 Step 4: Run the demo
 
-cd demo
-python app.py
-Then visit: http://localhost:5000
+by following the end of train_model.ipynb

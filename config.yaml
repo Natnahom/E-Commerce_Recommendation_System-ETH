@@ -8,8 +8,7 @@ data:
   processed_path: "../data/processed/processed_products.pkl"
   
 model:
-  tfidf_path: "../data/models/tfidf_model.pkl"
-  similarity_matrix_path: "../data/models/similarity_matrix.pkl"
+  tfidf_path: "../data/models/content_based_model.pkl"
   tfidf_max_features: 10000  
   ngram_range: [1, 2]
   max_df: 0.95
