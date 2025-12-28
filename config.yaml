@@ -1,35 +1,36 @@
 # Configuration for Ethiopian E-commerce Recommender
 project:
   name: "Ethiopian E-commerce Product Recommender"
-  version: "1.0"
-  
+  version: "2.0"
+
 data:
-  raw_path: "../data/raw/ethiopian_products_10k.csv"
+  raw_path: "../data/raw/ethiopian_products_150k.csv"
   processed_path: "../data/processed/processed_products.pkl"
-  
+
 model:
   tfidf_path: "../data/models/content_based_model.pkl"
-  tfidf_max_features: 10000  
+  tfidf_max_features: 10000        
   ngram_range: [1, 2]
-  max_df: 0.95
+  max_df: 0.80                     
   min_df: 2
-  
+
 features:
-  text_columns: ["name", "description", "description_amharic", "category", "subcategory", "brand"]
-  categorical_columns: ["category", "subcategory", "brand", "location"]
-  numerical_columns: ["price", "rating"]
-  
+  text_columns: ["name", "description", "description_amharic", "category", "subcategory", "brand", "tags"]
+  categorical_columns: ["category", "subcategory", "brand", "location", "stock_status"]
+  numerical_columns: ["price", "rating", "stock_quantity", "seller_rating", "weight_kg", "warranty_months"]
+
 preprocessing:
-  min_price: 100
-  max_price: 100000
-  min_rating: 1.0
+  min_price: 50                    
+  max_price: 180000                
+  min_rating: 2.4                  
   max_rating: 5.0
-  
+
 recommendation:
-  top_n: 5
+  top_n: 10                        
   min_similarity: 0.1
   delivery_filter: true
-  
+  diversify: true                  
+
 demo:
   host: "localhost"
   port: 5000

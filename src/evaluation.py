@@ -4,6 +4,7 @@ from sklearn.metrics import pairwise_distances
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.metrics.pairwise import cosine_similarity as pairwise_cosine
 
 class RecommenderEvaluator:
     """Evaluation metrics for the content-based recommender"""
@@ -12,49 +13,47 @@ class RecommenderEvaluator:
         self.recommender = recommender
         self.df = recommender.model.df
     
-    def calculate_intra_cluster_similarity(self, category):
+    def calculate_intra_cluster_similarity(self, category, sample_size=10000):
         """Calculate similarity within a category (cohesion)"""
         category_products = self.df[self.df['category'] == category]
-        
+
         if len(category_products) < 2:
             return 0
-        
-        # Get TF-IDF vectors for category products
+
+        # 🔹 Sample up to sample_size products from this category
+        if len(category_products) > sample_size:
+            category_products = category_products.sample(sample_size, random_state=42)
+
         indices = category_products.index.tolist()
         vectors = self.recommender.model.tfidf_matrix[indices]
-        
-        # Calculate average cosine similarity within category
-        similarities = []
-        for i in range(len(vectors)):
-            for j in range(i+1, len(vectors)):
-                sim = cosine_similarity(vectors[i], vectors[j])[0][0]
-                similarities.append(sim)
-        
-        return np.mean(similarities) if similarities else 0
-    
-    def calculate_inter_cluster_dissimilarity(self, category1, category2):
+
+        # Vectorized cosine similarity
+        sims = pairwise_cosine(vectors)
+        intra_sim = np.mean(sims[np.triu_indices_from(sims, k=1)])
+        return intra_sim
+
+    def calculate_inter_cluster_dissimilarity(self, category1, category2, sample_size=10000):
         """Calculate dissimilarity between categories (separation)"""
         cat1_products = self.df[self.df['category'] == category1]
         cat2_products = self.df[self.df['category'] == category2]
-        
+
         if len(cat1_products) == 0 or len(cat2_products) == 0:
             return 0
-        
-        # Get TF-IDF vectors
+
+        # 🔹 Sample each category
+        if len(cat1_products) > sample_size:
+            cat1_products = cat1_products.sample(sample_size, random_state=42)
+        if len(cat2_products) > sample_size:
+            cat2_products = cat2_products.sample(sample_size, random_state=42)
+
         idx1 = cat1_products.index.tolist()
         idx2 = cat2_products.index.tolist()
         vectors1 = self.recommender.model.tfidf_matrix[idx1]
         vectors2 = self.recommender.model.tfidf_matrix[idx2]
+
+        sims = pairwise_cosine(vectors1, vectors2)
+        return np.mean(sims)
         
-        # Calculate average cosine similarity between categories
-        similarities = []
-        for v1 in vectors1:
-            for v2 in vectors2:
-                sim = cosine_similarity(v1, v2)[0][0]
-                similarities.append(sim)
-        
-        return np.mean(similarities) if similarities else 0
-    
     def calculate_coverage(self, top_n=5):
         """Calculate what percentage of products get recommended"""
         all_products = set(self.df['product_id'])
@@ -128,12 +127,12 @@ class RecommenderEvaluator:
         
         return similarity_matrix
 
-def cosine_similarity(vec1, vec2):
-    """Calculate cosine similarity between two vectors"""
+def row_cosine_similarity(vec1, vec2):
+    """Calculate cosine similarity between two sparse vectors"""
     from numpy.linalg import norm
-    return np.dot(vec1.toarray().flatten(), vec2.toarray().flatten()) / (
-        norm(vec1.toarray().flatten()) * norm(vec2.toarray().flatten()) + 1e-10
-    )
+    v1 = vec1.toarray().flatten()
+    v2 = vec2.toarray().flatten()
+    return float(np.dot(v1, v2) / (norm(v1) * norm(v2) + 1e-10))
 
 # Example usage
 if __name__ == "__main__":

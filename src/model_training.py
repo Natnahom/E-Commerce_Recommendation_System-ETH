@@ -1,3 +1,4 @@
+import os
 import pickle
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -27,27 +28,27 @@ class EthiopianRecommenderModel:
         return self
     
     def prepare_features(self):
-        """Prepare features for the model"""
         if self.df is None:
             print("Error: No data loaded. Call load_data_from_csv() first.")
             return self
-        
-        # Create comprehensive features for content-based filtering
+
         print("Preparing features...")
-        
-        # Fill NaN values
-        for col in ['name', 'description', 'brand', 'category', 'subcategory', 'tags']:
+        for col in ['name', 'description', 'description_amharic', 'brand', 'category', 'subcategory', 'tags']:
             if col in self.df.columns:
                 self.df[col] = self.df[col].fillna('')
-        
-        # Create combined features
+
         self.df['comprehensive_features'] = self.df.apply(
-            lambda x: f"{x.get('name', '')} {x.get('description', '')} "
-                     f"{x.get('brand', '')} {x.get('category', '')} "
-                     f"{x.get('subcategory', '')} {x.get('tags', '')}",
+            lambda x: " ".join([
+                str(x.get('name', '')),
+                str(x.get('description', '')),
+                str(x.get('description_amharic', '')),
+                str(x.get('brand', '')),
+                str(x.get('category', '')),
+                str(x.get('subcategory', '')),
+                str(x.get('tags', ''))
+            ]),
             axis=1
         )
-        
         return self
     
     def train(self):
@@ -78,35 +79,30 @@ class EthiopianRecommenderModel:
         return self
     
     def _train_content_based(self):
-        """Train TF-IDF model for content-based filtering"""
-        # Use TF-IDF Vectorizer (Unsupervised feature extraction)
         self.tfidf = TfidfVectorizer(
-            max_features=5000,
+            max_features=10000,
             stop_words='english',
             ngram_range=(1, 2),
-            min_df=2,  # Ignore terms that appear in less than 2 documents
-            max_df=0.8  # Ignore terms that appear in more than 80% of documents
+            min_df=2,
+            max_df=0.8
         )
-        
-        # Fit on comprehensive features (Unsupervised - no labels needed)
         self.tfidf_matrix = self.tfidf.fit_transform(self.df['comprehensive_features'])
-        
-        # Compute cosine similarity (Unsupervised similarity measure)
-        print("Computing content similarity matrix...")
-        self.similarity_matrix = cosine_similarity(self.tfidf_matrix, self.tfidf_matrix)
-        
-        # Apply threshold to focus on meaningful similarities
-        threshold = 0.1
-        self.similarity_matrix[self.similarity_matrix < threshold] = 0
-        
-        print(f"TF-IDF matrix shape: {self.tfidf_matrix.shape}")
-        
+        # Do NOT build full similarity matrix
+        self.similarity_matrix = None
+        print("Using on-demand content similarity (no full matrix).")
+
     def _train_category_based(self):
-        """Create category similarity matrix (Unsupervised)"""
-        # One-hot encode categories
-        categories = pd.get_dummies(self.df['category'])
-        # Compute cosine similarity between categories
-        self.category_matrix = cosine_similarity(categories.values)
+        # Remove full category cosine similarity
+        # We'll compute category score on-demand: 1.0 if same category, else 0.5
+        self.category_matrix = None
+        print("Using rule-based category scores (no matrix).")        
+
+    # def _train_category_based(self):
+    #     """Create category similarity matrix (Unsupervised)"""
+    #     # One-hot encode categories
+    #     categories = pd.get_dummies(self.df['category'])
+    #     # Compute cosine similarity between categories
+    #     self.category_matrix = cosine_similarity(categories.values)
         
     def _train_price_based(self):
         """Create price buckets for price-based recommendations (Unsupervised)"""
@@ -143,67 +139,71 @@ class EthiopianRecommenderModel:
         ).values
         
     def get_recommendations(self, product_id, top_n=10, weights=None, diversify=True):
-        """Get content-based recommendations using unsupervised learning"""
-        if self.df is None or self.similarity_matrix is None:
+        """Get content-based recommendations using unsupervised learning with diversity and deduplication"""
+        if self.df is None or self.tfidf_matrix is None:
             print("Error: Model not trained. Call train() first.")
             return []
-        
+
         if product_id not in self.df['product_id'].values:
             print(f"Product {product_id} not found. Using popular items as fallback.")
             return self._get_popular_recommendations(top_n, diversify)
-        
+
         # Get product index
-        idx = self.df[self.df['product_id'] == product_id].index[0]
-        
-        # Default weights for content-based features
+        idx = self.df.index[self.df['product_id'] == product_id][0]
+
+        # Default weights
         if weights is None:
-            weights = {
-                'content': 0.6,    # TF-IDF similarity
-                'category': 0.3,   # Category similarity
-                'popularity': 0.1  # Popularity score
-            }
-        
-        # Get content-based scores (TF-IDF similarity)
-        content_scores = self.similarity_matrix[idx]
-        
-        # Get category-based scores
-        category_scores = self.category_matrix[idx]
-        
-        # Get price-based scores (preference for similar price range)
+            weights = {'content': 0.5, 'category': 0.3, 'popularity': 0.2}
+
+        # --- Content similarity on demand ---
+        query_vec = self.tfidf_matrix[idx]
+        content_scores = cosine_similarity(query_vec, self.tfidf_matrix).flatten()
+
+        # --- Category score (rule-based, no matrix) ---
+        query_cat = self.df.iloc[idx]['category']
+        query_sub = self.df.iloc[idx].get('subcategory', None)
+        cats = self.df['category'].values
+        subs = self.df['subcategory'].values if 'subcategory' in self.df.columns else np.array([None]*len(self.df))
+        category_scores = np.where(cats == query_cat, 1.0, 0.5)
+        if query_sub is not None:
+            category_scores = np.where((cats == query_cat) & (subs == query_sub), 1.05, category_scores)
+
+        # --- Price scores ---
         price_bucket = self.price_buckets[idx]
-        price_scores = np.array([1.0 if b == price_bucket else 0.5 
-                                for b in self.price_buckets])
-        
-        # Combine scores (Content-based hybrid approach)
+        price_scores = np.where(self.price_buckets == price_bucket, 1.0, 0.5)
+
+        # --- Combine scores ---
         combined_scores = (
             weights['content'] * content_scores +
             weights['category'] * category_scores +
-            0.1 * price_scores +  # Small weight for price
+            0.1 * price_scores +
             weights['popularity'] * self.popularity_scores
         )
-        
+
         # Sort by combined score
         sorted_indices = np.argsort(combined_scores)[::-1]
-        
-        # Get recommendations with optional diversification
+
         recommendations = []
         seen_categories = set()
-        
+        seen_names = set()
+
         for i in sorted_indices:
-            if i == idx:  # Skip the query product
+            if i == idx:
                 continue
-            
             product = self.df.iloc[i]
             category = product['category']
-            
-            # Apply diversification if enabled
+
+            # Deduplicate by product name
+            if product['name'] in seen_names:
+                continue
+            seen_names.add(product['name'])
+
+            # Diversification: enforce category variety after first few
             if diversify and len(recommendations) >= 3:
                 if category in seen_categories and len(seen_categories) > 1:
-                    continue  # Skip if we already have this category
-            
+                    continue
             seen_categories.add(category)
-            
-            # Prepare recommendation details
+
             rec = {
                 'product_id': product['product_id'],
                 'name': product['name'],
@@ -216,17 +216,14 @@ class EthiopianRecommenderModel:
                 'category_score': float(category_scores[i]),
                 'popularity_score': float(self.popularity_scores[i]),
             }
-            
-            # Add optional fields if they exist
             for field in ['delivery_available', 'location', 'stock_status', 'brand']:
                 if field in product:
                     rec[field] = product[field]
-            
+
             recommendations.append(rec)
-            
             if len(recommendations) >= top_n:
                 break
-        
+
         return recommendations
     
     def _get_popular_recommendations(self, top_n=10, diversify=True):
@@ -309,44 +306,35 @@ class EthiopianRecommenderModel:
         return recommendations
     
     def save_model(self, filepath='../data/models/content_based_model.pkl'):
-        """Save trained model"""
-        import os
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        
         model_data = {
             'tfidf': self.tfidf,
             'tfidf_matrix': self.tfidf_matrix,
-            'category_matrix': self.category_matrix,
             'price_buckets': self.price_buckets,
             'popularity_scores': self.popularity_scores,
             'df': self.df
         }
-        
         with open(filepath, 'wb') as f:
             pickle.dump(model_data, f)
         print(f"✅ Model saved successfully to {filepath}")
-    
+
     def load_model(self, filepath='../data/models/content_based_model.pkl'):
-        """Load trained model"""
         try:
             with open(filepath, 'rb') as f:
-                model_data = pickle.dump(f)
-            
+                model_data = pickle.load(f)  # FIX
             self.tfidf = model_data['tfidf']
             self.tfidf_matrix = model_data['tfidf_matrix']
-            self.category_matrix = model_data['category_matrix']
             self.price_buckets = model_data['price_buckets']
             self.popularity_scores = model_data['popularity_scores']
             self.df = model_data['df']
+            self.similarity_matrix = None
+            self.category_matrix = None
             print("✅ Model loaded successfully")
         except FileNotFoundError:
             print(f"❌ Model file not found at {filepath}")
-            print("   Training new model...")
-            self.load_data_from_csv().prepare_features().train()
+            print("   Train a new model or check the path.")
         except Exception as e:
             print(f"❌ Error loading model: {e}")
-            print("   Training new model...")
-            self.load_data_from_csv().prepare_features().train()
         return self
     
     def evaluate_model(self, sample_size=100, random_state=42):

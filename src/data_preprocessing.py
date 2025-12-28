@@ -7,7 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import yaml
 
 class EthiopianProductPreprocessor:
-    def __init__(self, config_path='config.yaml'):
+    def __init__(self, config_path='../config.yaml'):
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)
         
