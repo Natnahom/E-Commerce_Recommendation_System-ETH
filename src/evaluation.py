@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-from sklearn.metrics import pairwise_distances
-from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics.pairwise import cosine_similarity as pairwise_cosine
@@ -134,7 +132,7 @@ def row_cosine_similarity(vec1, vec2):
     v2 = vec2.toarray().flatten()
     return float(np.dot(v1, v2) / (norm(v1) * norm(v2) + 1e-10))
 
-# Example usage
+# Main execution
 if __name__ == "__main__":
     from recommender import EthiopianEcommerceRecommender
     

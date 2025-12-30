@@ -4,14 +4,9 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
-from scipy import sparse
-from collections import defaultdict
-import json
 
 class EthiopianRecommenderModel:
     def __init__(self, config_path='../config.yaml'):
-        # Commenting out the preprocessor import since it's not in the provided code
-        # self.preprocessor = EthiopianProductPreprocessor(config_path)
         self.df = None
         self.tfidf = None
         self.tfidf_matrix = None
@@ -96,13 +91,6 @@ class EthiopianRecommenderModel:
         # We'll compute category score on-demand: 1.0 if same category, else 0.5
         self.category_matrix = None
         print("Using rule-based category scores (no matrix).")        
-
-    # def _train_category_based(self):
-    #     """Create category similarity matrix (Unsupervised)"""
-    #     # One-hot encode categories
-    #     categories = pd.get_dummies(self.df['category'])
-    #     # Compute cosine similarity between categories
-    #     self.category_matrix = cosine_similarity(categories.values)
         
     def _train_price_based(self):
         """Create price buckets for price-based recommendations (Unsupervised)"""
@@ -420,7 +408,7 @@ class EthiopianRecommenderModel:
         }
 
 
-# Main execution for model_training.py
+# Main execution
 if __name__ == "__main__":
     print("="*60)
     print("🎯 ETHIOPIAN E-COMMERCE RECOMMENDER SYSTEM")

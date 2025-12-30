@@ -1,7 +1,4 @@
-import pandas as pd
-import numpy as np
 from model_training import EthiopianRecommenderModel
-import json
 from sklearn.metrics.pairwise import cosine_similarity
 from collections import defaultdict
 
@@ -327,7 +324,7 @@ class EthiopianEcommerceRecommender:
         }
 
 
-# Main execution for recommender.py
+# Main execution
 if __name__ == "__main__":
     print("="*60)
     print("🛍️ ETHIOPIAN E-COMMERCE RECOMMENDER SYSTEM")
