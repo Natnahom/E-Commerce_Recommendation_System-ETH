@@ -82,12 +82,10 @@ class EthiopianRecommenderModel:
             max_df=0.8
         )
         self.tfidf_matrix = self.tfidf.fit_transform(self.df['comprehensive_features'])
-        # Do NOT build full similarity matrix
         self.similarity_matrix = None
         print("Using on-demand content similarity (no full matrix).")
 
     def _train_category_based(self):
-        # Remove full category cosine similarity
         # We'll compute category score on-demand: 1.0 if same category, else 0.5
         self.category_matrix = None
         print("Using rule-based category scores (no matrix).")        
