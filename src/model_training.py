@@ -15,7 +15,7 @@ class EthiopianRecommenderModel:
         self.price_buckets = None
         self.popularity_scores = None
         
-    def load_data_from_csv(self, csv_path='../data/raw/ethiopian_products_10k.csv'):
+    def load_data_from_csv(self, csv_path='../data/raw/ethiopian_products_150k.csv'):
         """Load data directly from CSV file"""
         print(f"Loading data from {csv_path}...")
         self.df = pd.read_csv(csv_path)
